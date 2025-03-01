@@ -8,8 +8,10 @@ class NOTE:
     def __init__(self):
         self.notes = []
         self.mode = MODE_NOTE
-        self.lenght = None
-        self.point = False
+        self.lenght_m = None
+        self.lenght_s = None
+        self.point_m = False
+        self.point_s = False
         self.links = []
         self.index = None
 
@@ -25,9 +27,13 @@ class NOTE:
     def set_mode_pause(self):
         self.mode = MODE_PAUSE
 
-    def set_lenght(self, lenght, point):
-        self.lenght = lenght
-        self.point = point
+    def set_lenght_m(self, lenght, point):
+        self.lenght_m = lenght
+        self.point_m = point
+
+    def set_lenght_s(self, lenght, point):
+        self.lenght_s = lenght
+        self.point_s = point
 
     def set_index(self, index):
         self.index = index
@@ -55,7 +61,7 @@ class NOTE:
         if self.mode == MODE_PAUSE and n_notes > 1:
             return False
 
-        return n_notes > 0 and self.lenght != None
+        return n_notes > 0 and self.lenght_m != None
 
     def to_csv(self):
         final = ""
@@ -63,11 +69,12 @@ class NOTE:
             final += "N"
         else:
             final += "P"
-        final += ";" + str(self.lenght)
-        if self.point:
-            final += ";1;"
-        else:
-            final += ";0;"
+        final += ";" + str(self.lenght_m)
+        final += str(self.lenght_s) if self.lenght_s != None else "0"
+        final += ";"
+        final += "1" if self.point_m else "0"
+        final += "1" if self.point_s else "0"
+        final += ";"
         final += ",".join([str(note) for note in self.notes if note != None]) + ";"
         final += ",".join([str(link) for link in self.links])
         return final
@@ -78,11 +85,18 @@ class NOTE:
             self.mode = MODE_NOTE
         else:
             self.mode = MODE_PAUSE
-        self.lenght = int(data[1])
-        if data[2] == "1":
-            self.point = True
+        self.lenght_m = int(data[1][0])
+        self.lenght_s = int(data[1][1])
+        if self.lenght_s == 0:
+            self.lenght_s = None
+        if data[2][0] == "1":
+            self.point_m = True
         else:
-            self.point = False
+            self.point_m = False
+        if data[2][1] == "1":
+            self.point_s = True
+        else:
+            self.point_s = False
         self.notes = [int(note) if note != "" else None for note in data[3].split(",")]
         self.links = [int(link) for link in data[4].split(",") if link != ""]
 
@@ -108,9 +122,9 @@ class NOTE:
                 else:
                     final += lng.keys[self.notes[0]]
 
-        if self.lenght != None:
-            final += " " + lng.text_of_lenght + " 1/" + str(self.lenght)
-            if self.point:
+        if self.lenght_m != None:
+            final += " " + lng.text_of_lenght + " 1/" + str(self.lenght_m)
+            if self.point_m:
                 final += "."
         return final
 
@@ -127,7 +141,7 @@ class NOTE:
 
         if n_notes == 0:
             return lng.prob_note_ammount
-        if self.lenght == None:
+        if self.lenght_m == None:
             return lng.prob_no_lenght
 
     def __str__(self):
@@ -136,8 +150,8 @@ class NOTE:
             final += "N"
         else:
             final += "P"
-        final += " (1/" + str(self.lenght)
-        if self.point:
+        final += " (1/" + str(self.lenght_m)
+        if self.point_m:
             final += "."
         final += ") "
         for note in self.notes:

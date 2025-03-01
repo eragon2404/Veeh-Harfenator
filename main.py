@@ -1,6 +1,7 @@
 from tkinter import *
-from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 from tkinter.messagebox import askokcancel
+from tkinter.simpledialog import askstring
 import os
 from functools import partial
 import color_themes, languages
@@ -13,6 +14,7 @@ from song import SONG
 import time
 from plotter import plott
 import plotter
+import splitter
 
 # TODO: link maker
 # TODO: settings bar
@@ -77,7 +79,8 @@ class main: # Controlling Class
 
         self.link = LINK(self.main_frame.get("link_frame"), self.link_add_remove)
 
-        self.show = BUTTON("show", self.main_frame.get("settings_frame"), LEFT, 200, 200, "show", color.surface_2, self.show_plott)
+        self.show = BUTTON("show", self.main_frame.get("show_export_frame"), TOP, 200, 75, "show", color.surface_2, self.show_plott)
+        self.export = BUTTON("export", self.main_frame.get("show_export_frame"), BOTTOM, 200, 75, "export", color.surface_2, self.export)
 
         self.load = BUTTON("load", self.main_frame.get("load_save_frame"), TOP, 200, 75, "load", color.surface_3, self.load_song)
         self.save = BUTTON("save", self.main_frame.get("load_save_frame"), BOTTOM, 200, 75, "save", color.surface_4, self.save_song)
@@ -109,7 +112,9 @@ class main: # Controlling Class
 
         self.main_frame.get("bottom_frame").add_frame("settings_frame", LEFT, 400, 200, color.surface_4, border=1)
 
-        self.main_frame.get("settings_frame").add_frame("load_save_frame", RIGHT, 200, 200, color.surface_4, border=0)
+        self.main_frame.get("settings_frame").add_frame("show_export_frame", LEFT, 200, 200, color.surface_4, border=0)
+
+        self.main_frame.get("settings_frame").add_frame("load_save_frame", LEFT, 200, 200, color.surface_4, border=0)
 
         self.main_frame.get("bottom_frame").add_frame("info_frame", RIGHT, 400, 200, color.surface_3, border=1)
 
@@ -220,7 +225,25 @@ class main: # Controlling Class
         self.list.update(self.song)
 
     def show_plott(self):
-        plott(deepcopy(self.song), grid=True)
+        res = plott(deepcopy(self.song), grid=True)
+        for img in res:
+            img.show()
+
+    def export(self):
+        res = plott(deepcopy(self.song), grid=False)
+        path = askdirectory()
+        if path == "":
+            return
+        name = askstring("Name", "Enter the name of the song")
+        if name == "":
+            return
+        os.mkdir(os.path.join(path, name))
+        for i in range(len(res)):
+            res[i].save(os.path.join(path, name, str(i) + ".png"))
+            splits = splitter.split(res[i])
+            for j in range(len(splits)):
+                splits[j].save(os.path.join(path, name, str(i) + "_" + str(j) + ".png"))
+        self.info.success("Exported to " + os.path.join(path, name))
 
     def save_song(self):
         csv = self.song.to_csv()
@@ -443,21 +466,24 @@ class button_worker(WORK_FRAME):
         self.main_key_frame = FRAME("main_key_frame", self, TOP, 800, 30, color.surface_1, anchor=None)
         self.children.update({"main_key_frame" : self.main_key_frame})
 
+        self.padding_frame1 = FRAME("padding_frame1", self, TOP, 800, 10, color.surface_1)
+        self.lenght_key_frame1 = FRAME("lenght_key_frame1", self, TOP, 800, 30, color.surface_1)
+        self.children.update({"lenght_key_frame1": self.lenght_key_frame1})
+        lenght_label1 = LABEL("lenght_label1", self.lenght_key_frame1, LEFT, 100, 30, text.label_lenght_note,
+                             color.color_text_low, color.surface_1)
+
         sec_label = LABEL("sec_key_label", self, TOP, 800, 30, text.label_sec_note, color.color_text_low, color.surface_1)
         self.children.update({"sec_key_label" : sec_label})
 
         self.sec_key_frame = FRAME("main_sec_frame", self, TOP, 800, 30, color.surface_1)
         self.children.update({"sec_key_frame" : self.sec_key_frame})
 
-        self.blank_frame = FRAME("blank_frame", self, TOP, 800, 60, color.surface_1)
-        self.lenght_label_frame = FRAME("lenght_label_frame", self, TOP, 800, 30, color.surface_1)
+        self.padding_frame2 = FRAME("padding_frame2", self, TOP, 800, 10, color.surface_1)
+        self.lenght_key_frame2 = FRAME("lenght_key_frame1", self, TOP, 800, 30, color.surface_1)
+        self.children.update({"lenght_key_frame1": self.lenght_key_frame2})
+        lenght_label2 = LABEL("lenght_label2", self.lenght_key_frame2, LEFT, 100, 30, text.label_lenght_note,
+                             color.color_text_low, color.surface_1)
 
-        lenght_label = LABEL("lenght_label", self.lenght_label_frame, LEFT, 100, 30, text.label_lenght_note, color.color_text_low, color.surface_1)
-        self.children.update({"blank_frame": self.blank_frame})
-        self.children.update({"lenght_label_frame" : self.lenght_label_frame})
-
-        self.lenght_key_frame = FRAME("lenght_key_frame", self, TOP, 800, 30, color.surface_1)
-        self.children.update({"lenght_key_frame" : self.lenght_key_frame})
 
 
         def temp(value):
@@ -489,19 +515,35 @@ class button_worker(WORK_FRAME):
         self.no_sec_button.activate()
 
         def temp(value):
-            self.lenght_callback(value)
+            self.lenght_callback1(value)
 
-        self.lenght_key_frame.add_obj(BUTTON("lenght_1", self.lenght_key_frame, LEFT, 30, 30, "1/1", color.surface_7,
+        self.lenght_key_frame1.add_obj(BUTTON("lenght_1", self.lenght_key_frame1, LEFT, 30, 30, "1/1", color.surface_7,
                                                         partial(temp, value=1)))
-        self.lenght_key_frame.add_obj( BUTTON("lenght_2", self.lenght_key_frame, LEFT, 30, 30, "1/2", color.surface_7,
+        self.lenght_key_frame1.add_obj( BUTTON("lenght_2", self.lenght_key_frame1, LEFT, 30, 30, "1/2", color.surface_7,
                                                          partial(temp, value=2)))
-        self.lenght_key_frame.add_obj(BUTTON("lenght_4", self.lenght_key_frame, LEFT, 30, 30, "1/4", color.surface_7,
+        self.lenght_key_frame1.add_obj(BUTTON("lenght_4", self.lenght_key_frame1, LEFT, 30, 30, "1/4", color.surface_7,
                                                          partial(temp, value=4)))
-        self.lenght_key_frame.add_obj(BUTTON("lenght_8", self.lenght_key_frame, LEFT, 30, 30, "1/8", color.surface_7,
+        self.lenght_key_frame1.add_obj(BUTTON("lenght_8", self.lenght_key_frame1, LEFT, 30, 30, "1/8", color.surface_7,
                                                          partial(temp, value=8)))
-        self.lenght_key_frame.add_obj(FRAME("blank_button", self.lenght_key_frame, LEFT, 30, 30, color.surface_1))
+        self.lenght_key_frame1.add_obj(FRAME("blank_button", self.lenght_key_frame1, LEFT, 30, 30, color.surface_1))
 
-        self.lenght_key_frame.add_obj(BUTTON("lenght_.", self.lenght_key_frame, LEFT, 30, 30, ".", color.surface_7,
+        self.lenght_key_frame1.add_obj(BUTTON("lenght_.", self.lenght_key_frame1, LEFT, 30, 30, ".", color.surface_7,
+                                                         partial(temp, value=0)))
+
+        def temp(value):
+            self.lenght_callback2(value)
+
+        self.lenght_key_frame2.add_obj(BUTTON("lenght_1", self.lenght_key_frame2, LEFT, 30, 30, "1/1", color.surface_7,
+                                                        partial(temp, value=1)))
+        self.lenght_key_frame2.add_obj( BUTTON("lenght_2", self.lenght_key_frame2, LEFT, 30, 30, "1/2", color.surface_7,
+                                                         partial(temp, value=2)))
+        self.lenght_key_frame2.add_obj(BUTTON("lenght_4", self.lenght_key_frame2, LEFT, 30, 30, "1/4", color.surface_7,
+                                                         partial(temp, value=4)))
+        self.lenght_key_frame2.add_obj(BUTTON("lenght_8", self.lenght_key_frame2, LEFT, 30, 30, "1/8", color.surface_7,
+                                                         partial(temp, value=8)))
+        self.lenght_key_frame2.add_obj(FRAME("blank_button", self.lenght_key_frame2, LEFT, 30, 30, color.surface_1))
+
+        self.lenght_key_frame2.add_obj(BUTTON("lenght_.", self.lenght_key_frame2, LEFT, 30, 30, ".", color.surface_7,
                                                          partial(temp, value=0)))
 
         self.add_button = BUTTON("add_button", self, RIGHT, 120, 60, text.add_but, color.surface_7, self.add_button_callback)
@@ -510,9 +552,16 @@ class button_worker(WORK_FRAME):
     def load(self, note):
         self.reset()
         self.note = note
-        if self.note.point:
-            self.lenght_key_frame.get("lenght_.").activate()
-        self.lenght_key_frame.get("lenght_" + str(self.note.lenght)).activate()
+        if self.note.point_m:
+            self.lenght_key_frame1.get("lenght_.").activate()
+        else:
+            self.lenght_key_frame1.get("lenght_.").deactivate()
+        self.lenght_key_frame1.get("lenght_" + str(self.note.lenght_m)).activate()
+        if self.note.point_s:
+            self.lenght_key_frame2.get("lenght_.").activate()
+        else:
+            self.lenght_key_frame2.get("lenght_.").deactivate()
+        self.lenght_key_frame2.get("lenght_" + str(self.note.lenght_s)).activate()
         if self.note.notes[0] != None:
             self.main_key_frame.get("main_" + keys[self.note.notes[0]]).activate()
         if self.note.notes[1] != None:
@@ -527,21 +576,39 @@ class button_worker(WORK_FRAME):
         return self.note
 
 
-    def lenght_callback(self, value):
+    def lenght_callback1(self, value):
         if value == 0:
-            self.note.point = not self.note.point
-            if self.note.point:
-                self.lenght_key_frame.get("lenght_.").activate()
+            self.note.point_m = not self.note.point_m
+            if self.note.point_m:
+                self.lenght_key_frame1.get("lenght_.").activate()
             else:
-                self.lenght_key_frame.get("lenght_.").deactivate()
+                self.lenght_key_frame1.get("lenght_.").deactivate()
         else:
-            self.lenght_key_frame.get("lenght_1").deactivate()
-            self.lenght_key_frame.get("lenght_2").deactivate()
-            self.lenght_key_frame.get("lenght_4").deactivate()
-            self.lenght_key_frame.get("lenght_8").deactivate()
+            self.lenght_key_frame1.get("lenght_1").deactivate()
+            self.lenght_key_frame1.get("lenght_2").deactivate()
+            self.lenght_key_frame1.get("lenght_4").deactivate()
+            self.lenght_key_frame1.get("lenght_8").deactivate()
 
-            self.lenght_key_frame.get("lenght_"+str(value)).activate()
-            self.note.lenght = value
+            self.lenght_key_frame1.get("lenght_"+str(value)).activate()
+            self.note.lenght_m = value
+        self.push_update()
+
+
+    def lenght_callback2(self, value):
+        if value == 0:
+            self.note.point_s = not self.note.point_s
+            if self.note.point_s:
+                self.lenght_key_frame2.get("lenght_.").activate()
+            else:
+                self.lenght_key_frame2.get("lenght_.").deactivate()
+        else:
+            self.lenght_key_frame2.get("lenght_1").deactivate()
+            self.lenght_key_frame2.get("lenght_2").deactivate()
+            self.lenght_key_frame2.get("lenght_4").deactivate()
+            self.lenght_key_frame2.get("lenght_8").deactivate()
+
+            self.lenght_key_frame2.get("lenght_"+str(value)).activate()
+            self.note.lenght_s = value
         self.push_update()
 
 
@@ -598,11 +665,16 @@ class button_worker(WORK_FRAME):
             element.deactivate()
         for element in self.sec_key_frame.get_all().values():
             element.deactivate()
-        self.lenght_key_frame.get("lenght_1").deactivate()
-        self.lenght_key_frame.get("lenght_2").deactivate()
-        self.lenght_key_frame.get("lenght_4").deactivate()
-        self.lenght_key_frame.get("lenght_8").deactivate()
-        self.lenght_key_frame.get("lenght_.").deactivate()
+        self.lenght_key_frame1.get("lenght_1").deactivate()
+        self.lenght_key_frame1.get("lenght_2").deactivate()
+        self.lenght_key_frame1.get("lenght_4").deactivate()
+        self.lenght_key_frame1.get("lenght_8").deactivate()
+        self.lenght_key_frame1.get("lenght_.").deactivate()
+        self.lenght_key_frame2.get("lenght_1").deactivate()
+        self.lenght_key_frame2.get("lenght_2").deactivate()
+        self.lenght_key_frame2.get("lenght_4").deactivate()
+        self.lenght_key_frame2.get("lenght_8").deactivate()
+        self.lenght_key_frame2.get("lenght_.").deactivate()
         self.pause_button.re_text(text.pause_but_note)
         self.no_sec_button.activate()
         self.note = NOTE()
