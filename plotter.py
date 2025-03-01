@@ -5,7 +5,7 @@ size = 2000
 max_note = 24
 border_x = 1
 border_y = 50
-max_notes_per_site = 10
+max_notes_per_site = 51
 
 sizes = {1: 20, 2: 15, 4: 15, 8: 10}
 
@@ -20,9 +20,11 @@ def plott(song, grid=False):
     links = prepare_links(song.get_notes())
     sites = calc_notes(song)
     index = 0
+    result = []
     for site in sites:
-        plott_site(site, grid, links, index)
+        result.append(plott_site(site, grid, links, index))
         index += len(site)
+    return result
 
 def plott_site(entrys, grid, links, start_index):
     """
@@ -36,6 +38,8 @@ def plott_site(entrys, grid, links, start_index):
     # Grid
     if grid:
         draw_grid(draw, len(entrys))
+    else:
+        draw_alignment(draw)
 
     # Links
     for link in links:
@@ -47,7 +51,13 @@ def plott_site(entrys, grid, links, start_index):
             # arrow head
             sign = 1 if link[2] > link[4] else -1
             note = entrys[link[0] - start_index]
-            buff = sizes[note.lenght]
+            if calc_x(note.notes[0]) == link[2]:
+                buff = note.lenght_m
+            else:
+                buff = note.lenght_s
+                if buff is None:
+                    buff = note.lenght_m
+            buff = sizes[buff]
             buff *= 1.5 if note.mode == 0 else 0.75
 
             draw.polygon((
@@ -88,9 +98,14 @@ def plott_site(entrys, grid, links, start_index):
             ex2 = notes[i + 1]
             if ex1 == None or ex2 == None:
                 continue
-            draw.line(((calc_x(ex1), y), (calc_x(ex2), y)), width=3)
+            #draw.line(((calc_x(ex1), y), (calc_x(ex2), y)), width=3)
+            # dashed line
+            lx = min(calc_x(ex1), calc_x(ex2))
+            rx = max(calc_x(ex1), calc_x(ex2))
+            for x in range(lx, rx, 20):
+                draw.line(((x, y), (x + 10, y)), width=4)
         draw_note(draw, entrys[ey], y)
-    image.show()
+    return image
 
 
 def prepare_links(notes):
@@ -177,14 +192,19 @@ def draw_note(draw, note, y):
     :param y: y position
     """
 
+    for i, n in enumerate(note.notes):
+        length = note.lenght_m if i == 0 else note.lenght_s
+        point = note.point_m if i == 0 else note.point_s
+        if length == None:
+            length = note.lenght_m
+            point = note.point_m
 
-    size = sizes[note.lenght]
-    if note.lenght == 1 or note.lenght == 2:
-        hollow = True
-    else:
-        hollow = False
+        size = sizes[length]
+        if length == 1 or length == 2:
+            hollow = True
+        else:
+            hollow = False
 
-    for n in note.notes:
         if n == None:
             continue
         x = calc_x(n)
@@ -193,7 +213,7 @@ def draw_note(draw, note, y):
         else:
             draw_rect(draw, x, y, size, hollow)
 
-        if note.point:
+        if point:
             draw.circle((x+size*1.5, y+size), 5, fill=0)
 
 
@@ -246,7 +266,19 @@ def draw_grid(draw, count_y):
         y = calc_y(count_y, i)
         draw.line(((0, y), (size, y)))
 
-
+def draw_alignment(draw):
+    """
+    Draws the alignment
+    :param draw: draw object
+    """
+    lines_y = [(0.02*size, 0.07*size), (0.93*size, 0.98*size)]
+    x0 = calc_x(0)
+    xn = calc_x(max_note)
+    for y in lines_y:
+        draw.line(((x0, y[0]), (x0, y[1])), width=5)
+        draw.line(((xn, y[0]), (xn, y[1])), width=5)
+    for x in range(0, size, 30):
+        draw.line(((x, size), (x+15, size)), width=3)
 
 def calc_notes(song):
     """
